@@ -18,6 +18,15 @@ struct msgbuf {
 };
 
 int main() {
+    // colinha do chmod
+    // permissions
+    // own grp all
+    // rwx rwx rwx
+    // 421 421 421
+    // rw- --- ---
+    // 6   0   0
+    // rwx r-- r--
+    // 7   4   4
     int msgid = msgget(1234, IPC_CREAT | 0600);
     if (msgid == -1) {
         perror("msgget failed");
