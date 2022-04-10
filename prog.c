@@ -1,15 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <errno.h>
 #include <string.h>
+#include <sys/ipc.h>
+#include <fcntl.h>
+#include <sys/msg.h>
+#include <sys/types.h>
 
 
-//linhas usadas para executar: gcc -Wall -Wextra -Pedantic 
-// acho que tava usando -std=c10
-// atualmente o código cria 1 processo filho e 1 pai e eles se comunicam via ipc->message send\ message receive, falta botar 10 e dar wait(pid) nos filhos;
 //const int MSGSIZE = 10; // error: redefining array size during execution <<
 #define MSGSIZE 10
 
@@ -19,40 +17,55 @@ struct msgbuf {
 };
 
 int main() {
-    // permissions
-    // own grp all
-    // rwx rwx rwx
-    // 421 421 421
-    // rw- --- ---
-    // 6   0   0
-    // rwx r-- r--
-    // 7   4   4
     int msgid = msgget(1234, IPC_CREAT | 0600);
     if (msgid == -1) {
         perror("msgget failed");
         return 0;
     }
-
-    pid_t pid = fork();
+    // pid_t pids[10];
+    pid_t pid;
+    int i;
+    for (int i = 0; i < 10; i++){
+        pid = fork();
+        if (pid == 0){
+            break;
+        } 
+    }
 
     if (pid == 0) {
         // child
+        sleep(60);
         struct msgbuf msgp;
         msgp.mtype = 1;
-        const char * text = "hi! 1";
+        const char * text = "hi pops!";
         strcpy(msgp.mtext, text);
         int status = msgsnd(msgid, &msgp, MSGSIZE, 0);
         msgsnd(msgid, &msgp, MSGSIZE, 0);
         if (status == -1) { perror("child"); }
-    } else {
-        // parent
-        struct msgbuf msgp;
-        //int status = msgrcv(msgid, &msgp, MSGSIZE, 1, IPC_NOWAIT);
-        int status = msgrcv(msgid, &msgp, MSGSIZE, 1, 0);
+        status = msgrcv(msgid, &msgp, MSGSIZE, 2, 0);
         if (status == -1) {
             perror("parent");
         } else {
             printf("%s\n", msgp.mtext);
+        }
+    } else {
+        // parent
+        struct msgbuf msgp;
+        // int status = msgrcv(msgid, &msgp, MSGSIZE, 1, IPC_NOWAIT);
+        int status = 0;
+        for (i = 0; i < 10; i++){
+            int status = msgrcv(msgid, &msgp, MSGSIZE, 1, 0); // isso aqui é basicamente um lock, execução trava até receber uma mensagem do tipo 1;
+            if (status == -1) {
+                perror("parent");
+            } else {
+                printf("%s\n", msgp.mtext);struct msgbuf msgp;
+                msgp.mtype = 2;
+                const char * text = "bye filho";
+                strcpy(msgp.mtext, text);
+                int status = msgsnd(msgid, &msgp, MSGSIZE, 0);
+                msgsnd(msgid, &msgp, MSGSIZE, 0);
+                if (status == -1) { perror("parend"); }
+            }
         }
 
         //free msg queue
@@ -62,7 +75,3 @@ int main() {
         }
     }
 }
-
-// cmds
-// ipcs -> listar os ipcs
-// ipcrm -> remover um ipc
