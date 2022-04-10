@@ -81,8 +81,7 @@ int main() {
             }
         }
         for (i = 0; i < 10; i++){
-            waitpid(pids[0], &status, 0); // se não dermos wait aqui vamos limpar a msg queue e os filhos vão ficar presos aguardando mensagens.
-            //Option is 0 since I check it later
+            waitpid(pids[1], &status, 0); // se não dermos wait aqui vamos limpar a msg queue e os filhos vão ficar presos aguardando mensagens.
 
             if (WIFSIGNALED(status)){
                 printf("Error\n");
