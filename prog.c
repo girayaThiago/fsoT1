@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/msg.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 
 //const int MSGSIZE = 10; // error: redefining array size during execution <<
@@ -22,24 +23,26 @@ int main() {
         perror("msgget failed");
         return 0;
     }
-    // pid_t pids[10];
+    pid_t pids[10];
     pid_t pid;
     int i;
+    int status;
     for (int i = 0; i < 10; i++){
         pid = fork();
         if (pid == 0){
             break;
         } 
+        pids[i] = pid;
     }
 
     if (pid == 0) {
         // child
-        sleep(60);
+        sleep(8);
         struct msgbuf msgp;
         msgp.mtype = 1;
         const char * text = "hi pops!";
         strcpy(msgp.mtext, text);
-        int status = msgsnd(msgid, &msgp, MSGSIZE, 0);
+        status = msgsnd(msgid, &msgp, MSGSIZE, 0);
         msgsnd(msgid, &msgp, MSGSIZE, 0);
         if (status == -1) { perror("child"); }
         status = msgrcv(msgid, &msgp, MSGSIZE, 2, 0);
@@ -50,11 +53,11 @@ int main() {
         }
     } else {
         // parent
+        sleep(22);
         struct msgbuf msgp;
         // int status = msgrcv(msgid, &msgp, MSGSIZE, 1, IPC_NOWAIT);
-        int status = 0;
         for (i = 0; i < 10; i++){
-            int status = msgrcv(msgid, &msgp, MSGSIZE, 1, 0); // isso aqui é basicamente um lock, execução trava até receber uma mensagem do tipo 1;
+            status = msgrcv(msgid, &msgp, MSGSIZE, 1, 0); // isso aqui é basicamente um lock, execução trava até receber uma mensagem do tipo 1;
             if (status == -1) {
                 perror("parent");
             } else {
@@ -65,6 +68,17 @@ int main() {
                 int status = msgsnd(msgid, &msgp, MSGSIZE, 0);
                 msgsnd(msgid, &msgp, MSGSIZE, 0);
                 if (status == -1) { perror("parend"); }
+            }
+        }
+        for (i = 0; i < 10; i++){
+            waitpid(pids[0], &status, 0);
+            //Option is 0 since I check it later
+
+            if (WIFSIGNALED(status)){
+                printf("Error\n");
+            }
+            else if (WEXITSTATUS(status)){
+                printf("Exited Normally\n");
             }
         }
 
