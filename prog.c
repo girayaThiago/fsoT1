@@ -37,10 +37,11 @@ int main() {
 
     if (pid == 0) {
         // child
-        sleep(8);
+        sleep(60);
+        printf("Sou processo filho pid = <%d>\n", getpid());
         struct msgbuf msgp;
         msgp.mtype = 1;
-        const char * text = "hi pops!";
+        const char * text = "imprimi!";
         strcpy(msgp.mtext, text);
         status = msgsnd(msgid, &msgp, MSGSIZE, 0);
         msgsnd(msgid, &msgp, MSGSIZE, 0);
@@ -63,7 +64,7 @@ int main() {
             } else {
                 printf("%s\n", msgp.mtext);struct msgbuf msgp;
                 msgp.mtype = 2;
-                const char * text = "bye filho";
+                const char * text = "ok filho";
                 strcpy(msgp.mtext, text);
                 int status = msgsnd(msgid, &msgp, MSGSIZE, 0);
                 msgsnd(msgid, &msgp, MSGSIZE, 0);
